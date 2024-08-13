@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
 
+source /usr/local/lib/shell/env.sh
+source /usr/local/lib/shell/secrets.sh
+source /usr/local/lib/shell/container_lifecycle.sh
+
+# Save container defined variables to /.env.container
+touch /.env.container
+chown root:root /.env.container  # Root only
+chmod 200 /.env.container        # Write only
+save_environment > /.env.container
+chmod 400 /.env.container        # Read only
+
 # Load environment variables from /.env file
-set -a
-[ -f /.env ] && . /.env
-set +a
+[ -f /.env ] && load_environment < /.env
 
 # Load secrets from /run/secrets directory
-if [ -d "/run/secrets" ]; then
-    for secret in /run/secrets/*; do
-        export $(basename $secret)=$(cat $secret)
-    done
-fi
+load_secrets
 
-# Default values
-USERID=${USERID:-1000}
-GROUPID=${GROUPID:-1000}
-USERNAME=${USERNAME:-user}
-GROUPNAME=${GROUPNAME:-user}
+# Load default values and expand environment
+expand_environment
 
 # Print information about the system
 printf '==================================================\n'
@@ -24,28 +26,19 @@ printf '= %-46s =\n' ""
 printf '= %-46s =\n' "USER: $USERNAME:$GROUPNAME ($USERID:$GROUPID)"
 printf '= %-46s =\n' "HOST: $(hostname)"
 printf '= %-46s =\n' "ADDRESS: $(hostname -I)"
+printf '= %-46s =\n' "WORKDIR: $(pwd)"
 printf '= %-46s =\n' "COMMAND: $@"
 printf '= %-46s =\n' ""
 printf '==================================================\n'
 
 # Run startup scripts
 function on_enter () {
-    for script in /etc/docker-entrypoint.d/*.sh; do
-        if [ -f "$script" ]; then
-            echo " ==> Running \"${script}\" ... "
-            . "$script"
-        fi
-    done
+    run_entrypoint_scripts
 }
 
 # Run cleanup scripts
 function on_exit () {
-    for script in /etc/docker-exitpoint.d/*.sh; do
-        if [ -f "$script" ]; then
-            echo " ==> Running \"${script}\" ... "
-            . "$script"
-        fi
-    done
+    run_exitpoint_scripts
 }
 
 # Run on_exit when container is stopped, run on_enter now

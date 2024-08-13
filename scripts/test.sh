@@ -14,8 +14,16 @@ fi
 # Generate list of files to mount into the containers so that changes can be tested without rebuilding each time
 VOLUMES=""
 for item in $(find $(pwd)/src/rootfs -type f); do
-    VOLUMES="${VOLUMES} --volume=${item}:${item##$(pwd)/src/rootfs}"
+    VOLUMES="${VOLUMES} --volume=${item}:${item##$(pwd)/src/rootfs}:ro"
 done
+
+# Create test directory
+if [ ! -d "$(pwd)/test" ]; then
+    mkdir -pv "$(pwd)/test"
+    touch "$(pwd)/test/.env"
+    echo "touch: created file '$(pwd)/test/.env'"
+    printf "%s\n%s\n%s\n" '# Cron' 'CRON_LOGLEVEL = 15' 'CRON_AUTOSTART = false' > "$(pwd)/test/.env"
+fi
 
 # Run docker
 if [[ -z "$CMD" ]]; then
@@ -24,7 +32,8 @@ if [[ -z "$CMD" ]]; then
         --interactive \
         --rm \
         --name "ubuntu-${UBUNTU_VERSION/./-}" \
-        --env "EXPAND_FROM_ENV_DEBUG_VALUES=true" \
+        --env "EXTENDED_DEBUG_INFORMATION=true" \
+        --volume="$(pwd)/test/.env:/.env" \
         $VOLUMES \
             "${REPOSITORY}:${UBUNTU_VERSION}"
 else
@@ -33,7 +42,8 @@ else
         --interactive \
         --rm \
         --name "ubuntu-${UBUNTU_VERSION/./-}" \
-        --env "EXPAND_FROM_ENV_DEBUG_VALUES=true" \
+        --env "EXTENDED_DEBUG_INFORMATION=true" \
+        --volume="$(pwd)/test/.env:/.env" \
         $VOLUMES \
             "${REPOSITORY}:${UBUNTU_VERSION}" "$CMD"
 fi

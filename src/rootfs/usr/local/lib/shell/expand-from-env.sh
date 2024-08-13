@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 source /usr/local/lib/shell/boolean.sh
-export EXPAND_FROM_ENV_DEBUG_VALUES=${EXPAND_FROM_ENV_DEBUG_VALUES:-false}
 
 # Function for expanding config files from .env files
 function expand_from_env () {
@@ -9,12 +8,12 @@ function expand_from_env () {
     local sed_pattern=""
 
     # Generate SED pattern for replacing values
-    for item in $(grep --ignore-case --color=never --only-matching "{{ENV_.*}}" "$filename" | uniq --unique); do
+    for item in $(grep --ignore-case --color=never --only-matching "{{ENV_.*}}" "$filename" | sort | uniq); do
         local var_name="${item:6:-2}" # remove {{ENV_*}} from the value
         sed_pattern="$sed_pattern;s|$item|${!var_name}|g"
 
         # Dump values to stdout for debugging
-        if is_true "$EXPAND_FROM_ENV_DEBUG_VALUES"; then
+        if is_true "$EXTENDED_DEBUG_INFORMATION"; then
             echo "[expand-from-env.sh]   - $item=${!var_name}"
         fi
     done
