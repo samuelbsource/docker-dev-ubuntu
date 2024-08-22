@@ -25,7 +25,8 @@ function load_environment () {
         var_value="${var_value##\"}"
         var_value="${var_value%%\"}"
 
-        if [ "$var_name" == "_" ] ||
+        if [ "$var_name" == "" ] ||
+        [ "$var_name" == "_" ] ||
         [ "$var_name" == "PWD" ] ||
         [ "$var_name" == "LS_COLORS" ] ||
         [ "$var_name" == "TERM" ]; then
